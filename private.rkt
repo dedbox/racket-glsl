@@ -2,6 +2,7 @@
 
 (require racket/function
          syntax/parse
+         syntax/parse/define
          (for-template racket/base
                        racket/format
                        racket/string))
@@ -62,7 +63,7 @@
 
 (define layout-qualifier
   (syntax-parser
-    [((~datum layout) ((~or a:id [a:id e:expr] (~datum shared)) ...+) . tail)
+    [((~datum layout) ~! ((~or a:id [a:id e:expr] (~datum shared)) ...+) . tail)
      (values
       #'(~a "layout ("
             (string-join (list (~a (~? (~@ 'a (~? (~@ " = " e))) 's)) ...) ", ")
@@ -72,26 +73,26 @@
 
 (define precision-qualifier
   (syntax-parser
-    [((~datum highp)   . tail) (values #'"highp"   #'tail)]
-    [((~datum mediump) . tail) (values #'"mediump" #'tail)]
-    [((~datum lowp)    . tail) (values #'"lowp"    #'tail)]
+    [((~datum highp)   ~! . tail) (values #'"highp"   #'tail)]
+    [((~datum mediump) ~! . tail) (values #'"mediump" #'tail)]
+    [((~datum lowp)    ~! . tail) (values #'"lowp"    #'tail)]
     [_ (values #f #f)]))
 
 (define interpolation-qualifier
   (syntax-parser
-    [((~datum smooth)        . tail) (values #'"smooth"        #'tail)]
-    [((~datum flat)          . tail) (values #'"flat"          #'tail)]
-    [((~datum noperspective) . tail) (values #'"noperspective" #'tail)]
+    [((~datum smooth)        ~! . tail) (values #'"smooth"        #'tail)]
+    [((~datum flat)          ~! . tail) (values #'"flat"          #'tail)]
+    [((~datum noperspective) ~! . tail) (values #'"noperspective" #'tail)]
     [_ (values #f #f)]))
 
 (define invariant-qualifier
   (syntax-parser
-    [((~datum invariant) . tail) (values #'"invariant" #'tail)]
+    [((~datum invariant) ~! . tail) (values #'"invariant" #'tail)]
     [_ (values #f #f)]))
 
 (define precise-qualifier
   (syntax-parser
-    [((~datum precise) . tail) (values #'"precise" #'tail)]
+    [((~datum precise) ~! . tail) (values #'"precise" #'tail)]
     [_ (values #f #f)]))
 
 (define (type-specifier stx)
@@ -107,154 +108,240 @@
       [((n:exact-integer) . tail) (loop (cons #'(~a "[" n "]") as) #'tail)]
       [_ (values (reverse as) stx*)])))
 
-(define type-specifier-nonarray
+(define struct-specifier
   (syntax-parser
-    [((~datum void)    . tail) (values #'"void"    #'tail)]
-    [((~datum float)   . tail) (values #'"float"   #'tail)]
-    [((~datum double)  . tail) (values #'"double"  #'tail)]
-    [((~datum int)     . tail) (values #'"int"     #'tail)]
-    [((~datum uint)    . tail) (values #'"uint"    #'tail)]
-    [((~datum bool)    . tail) (values #'"bool"    #'tail)]
-    [((~datum vec2)    . tail) (values #'"vec2"    #'tail)]
-    [((~datum vec3)    . tail) (values #'"vec3"    #'tail)]
-    [((~datum vec4)    . tail) (values #'"vec4"    #'tail)]
-    [((~datum dvec2)   . tail) (values #'"dvec2"   #'tail)]
-    [((~datum dvec3)   . tail) (values #'"dvec3"   #'tail)]
-    [((~datum dvec4)   . tail) (values #'"dvec4"   #'tail)]
-    [((~datum bvec2)   . tail) (values #'"bvec2"   #'tail)]
-    [((~datum bvec3)   . tail) (values #'"bvec3"   #'tail)]
-    [((~datum bvec4)   . tail) (values #'"bvec4"   #'tail)]
-    [((~datum ivec2)   . tail) (values #'"ivec2"   #'tail)]
-    [((~datum ivec3)   . tail) (values #'"ivec3"   #'tail)]
-    [((~datum ivec4)   . tail) (values #'"ivec4"   #'tail)]
-    [((~datum uvec2)   . tail) (values #'"uvec2"   #'tail)]
-    [((~datum uvec3)   . tail) (values #'"uvec3"   #'tail)]
-    [((~datum uvec4)   . tail) (values #'"uvec4"   #'tail)]
-    [((~datum mat2)    . tail) (values #'"mat2"    #'tail)]
-    [((~datum mat3)    . tail) (values #'"mat3"    #'tail)]
-    [((~datum mat4)    . tail) (values #'"mat4"    #'tail)]
-    [((~datum mat2x2)  . tail) (values #'"mat2x2"  #'tail)]
-    [((~datum mat2x3)  . tail) (values #'"mat2x3"  #'tail)]
-    [((~datum mat2x4)  . tail) (values #'"mat2x4"  #'tail)]
-    [((~datum mat3x2)  . tail) (values #'"mat3x2"  #'tail)]
-    [((~datum mat3x3)  . tail) (values #'"mat3x3"  #'tail)]
-    [((~datum mat3x4)  . tail) (values #'"mat3x4"  #'tail)]
-    [((~datum mat4x2)  . tail) (values #'"mat4x2"  #'tail)]
-    [((~datum mat4x3)  . tail) (values #'"mat4x3"  #'tail)]
-    [((~datum mat4x4)  . tail) (values #'"mat4x4"  #'tail)]
-    [((~datum dmat2)   . tail) (values #'"dmat2"   #'tail)]
-    [((~datum dmat3)   . tail) (values #'"dmat3"   #'tail)]
-    [((~datum dmat4)   . tail) (values #'"dmat4"   #'tail)]
-    [((~datum dmat2x2) . tail) (values #'"dmat2x2" #'tail)]
-    [((~datum dmat2x3) . tail) (values #'"dmat2x3" #'tail)]
-    [((~datum dmat2x4) . tail) (values #'"dmat2x4" #'tail)]
-    [((~datum dmat3x2) . tail) (values #'"dmat3x2" #'tail)]
-    [((~datum dmat3x3) . tail) (values #'"dmat3x3" #'tail)]
-    [((~datum dmat3x4) . tail) (values #'"dmat3x4" #'tail)]
-    [((~datum dmat4x2) . tail) (values #'"dmat4x2" #'tail)]
-    [((~datum dmat4x3) . tail) (values #'"dmat4x3" #'tail)]
-    [((~datum dmat4x4) . tail) (values #'"dmat4x4" #'tail)]
-    [((~datum atomic_uint) . tail) (values #'"atomic_uint" #'tail)]
-    [((~datum sampler1d)              . tail) (values #'"sampler1d"              #'tail)]
-    [((~datum sampler2d200)           . tail) (values #'"sampler2d200"           #'tail)]
-    [((~datum sampler3d)              . tail) (values #'"sampler3d"              #'tail)]
-    [((~datum samplercube)            . tail) (values #'"samplercube"            #'tail)]
-    [((~datum sampler1dshadow)        . tail) (values #'"sampler1dshadow"        #'tail)]
-    [((~datum sampler2dshadow)        . tail) (values #'"sampler2dshadow"        #'tail)]
-    [((~datum samplercubeshadow)      . tail) (values #'"samplercubeshadow"      #'tail)]
-    [((~datum sampler1darray)         . tail) (values #'"sampler1darray"         #'tail)]
-    [((~datum sampler2darray)         . tail) (values #'"sampler2darray"         #'tail)]
-    [((~datum sampler1darrayshadow)   . tail) (values #'"sampler1darrayshadow"   #'tail)]
-    [((~datum sampler2darrayshadow)   . tail) (values #'"sampler2darrayshadow"   #'tail)]
-    [((~datum samplercubearray)       . tail) (values #'"samplercubearray"       #'tail)]
-    [((~datum samplercubearrayshadow) . tail) (values #'"samplercubearrayshadow" #'tail)]
-    [((~datum isampler1d)        . tail) (values #'"isampler1d"        #'tail)]
-    [((~datum isampler2d)        . tail) (values #'"isampler2d"        #'tail)]
-    [((~datum isampler3d)        . tail) (values #'"isampler3d"        #'tail)]
-    [((~datum isamplercube)      . tail) (values #'"isamplercube"      #'tail)]
-    [((~datum isampler1darray)   . tail) (values #'"isampler1darray"   #'tail)]
-    [((~datum isampler2darray)   . tail) (values #'"isampler2darray"   #'tail)]
-    [((~datum isamplercubearray) . tail) (values #'"isamplercubearray" #'tail)]
-    [((~datum usampler1d)        . tail) (values #'"usampler1d"        #'tail)]
-    [((~datum usampler2d)        . tail) (values #'"usampler2d"        #'tail)]
-    [((~datum usampler3d)        . tail) (values #'"usampler3d"        #'tail)]
-    [((~datum usamplercube)      . tail) (values #'"usamplercube"      #'tail)]
-    [((~datum usampler1darray)   . tail) (values #'"usampler1darray"   #'tail)]
-    [((~datum usampler2darray)   . tail) (values #'"usampler2darray"   #'tail)]
-    [((~datum usamplercubearray) . tail) (values #'"usamplercubearray" #'tail)]
-    [((~datum sampler2drectshadow) . tail) (values #'"sampler2drectshadow" #'tail)]
-    [((~datum sampler2drect)       . tail) (values #'"sampler2drect"       #'tail)]
-    [((~datum isampler2drect)      . tail) (values #'"isampler2drect"      #'tail)]
-    [((~datum usampler2drect)      . tail) (values #'"usampler2drect"      #'tail)]
-    [((~datum samplerbuffer)  . tail) (values #'"samplerbuffer"  #'tail)]
-    [((~datum isamplerbuffer) . tail) (values #'"isamplerbuffer" #'tail)]
-    [((~datum usamplerbuffer) . tail) (values #'"usamplerbuffer" #'tail)]
-    [((~datum sampler2dms)  . tail) (values #'"sampler2dms"  #'tail)]
-    [((~datum isampler2dms) . tail) (values #'"isampler2dms" #'tail)]
-    [((~datum usampler2dms) . tail) (values #'"usampler2dms" #'tail)]
-    [((~datum sampler2dmsarray)     . tail) (values #'"sampler2dmsarray"     #'tail)]
-    [((~datum isampler2dmsarray201) . tail) (values #'"isampler2dmsarray201" #'tail)]
-    [((~datum usampler2dmsarray)    . tail) (values #'"usampler2dmsarray"    #'tail)]
-    [((~datum image1d)  . tail) (values #'"image1d"  #'tail)]
-    [((~datum iimage1d) . tail) (values #'"iimage1d" #'tail)]
-    [((~datum uimage1d) . tail) (values #'"uimage1d" #'tail)]
-    [((~datum image2d)  . tail) (values #'"image2d"  #'tail)]
-    [((~datum iimage2d) . tail) (values #'"iimage2d" #'tail)]
-    [((~datum uimage2d) . tail) (values #'"uimage2d" #'tail)]
-    [((~datum image3d)  . tail) (values #'"image3d"  #'tail)]
-    [((~datum iimage3d) . tail) (values #'"iimage3d" #'tail)]
-    [((~datum uimage3d) . tail) (values #'"uimage3d" #'tail)]
-    [((~datum image2drect)  . tail) (values #'"image2drect"  #'tail)]
-    [((~datum iimage2drect) . tail) (values #'"iimage2drect" #'tail)]
-    [((~datum uimage2drect) . tail) (values #'"uimage2drect" #'tail)]
-    [((~datum imagecube)  . tail) (values #'"imagecube"  #'tail)]
-    [((~datum iimagecube) . tail) (values #'"iimagecube" #'tail)]
-    [((~datum uimagecube) . tail) (values #'"uimagecube" #'tail)]
-    [((~datum imagebuffer)  . tail) (values #'"imagebuffer"  #'tail)]
-    [((~datum iimagebuffer) . tail) (values #'"iimagebuffer" #'tail)]
-    [((~datum uimagebuffer) . tail) (values #'"uimagebuffer" #'tail)]
-    [((~datum image1darray)  . tail) (values #'"image1darray"  #'tail)]
-    [((~datum iimage1darray) . tail) (values #'"iimage1darray" #'tail)]
-    [((~datum uimage1darray) . tail) (values #'"uimage1darray" #'tail)]
-    [((~datum image2darray)  . tail) (values #'"image2darray"  #'tail)]
-    [((~datum iimage2darray) . tail) (values #'"iimage2darray" #'tail)]
-    [((~datum uimage2darray) . tail) (values #'"uimage2darray" #'tail)]
-    [((~datum imagecubearray)  . tail) (values #'"imagecubearray"  #'tail)]
-    [((~datum iimagecubearray) . tail) (values #'"iimagecubearray" #'tail)]
-    [((~datum uimagecubearray) . tail) (values #'"uimagecubearray" #'tail)]
-    [((~datum image2dms)  . tail) (values #'"image2dms"  #'tail)]
-    [((~datum iimage2dms) . tail) (values #'"iimage2dms" #'tail)]
-    [((~datum uimage2dms) . tail) (values #'"uimage2dms" #'tail)]
-    [((~datum image2dmsarray)  . tail) (values #'"image2dmsarray"  #'tail)]
-    [((~datum iimage2dmsarray) . tail) (values #'"iimage2dmsarray" #'tail)]
-    [((~datum uimage2dmsarray) . tail) (values #'"uimage2dmsarray" #'tail)]
+    [(((~datum struct) ~! (~optional t:id) . tail0) . tail)
+     #:do [(define-values (ds tail0*) (struct-declaration-list #'tail0))]
+     #:when (pair? ds)
+     #:when (null? (syntax-e tail0*))
+     (values #`(~a (~? (~@ 't " "))
+                   "{\n  "
+                   (string-join (list #,@ds) "\n  ")
+                   "}")
+             #'tail)]
     [_ (values #f #f)]))
 
-(define primary-expression
-  (syntax-parser
-    [(~or :id :number) #`(~a '#,this-syntax)]
-    [#t #'"true"]
-    [#f #'"false"]
-    [_ #f]))
+(define (struct-declaration-list stx)
+  (let loop ([ds null]
+             [stx* stx])
+    (syntax-parse stx*
+      [() (if (pair? ds) (values (reverse ds) stx*) (values #f #f))]
+      [(head . tail)
+       (define-values (d stx**) (struct-declaration #'head))
+       (if d (loop (cons d ds) #'tail) (values #f #f))])))
 
-(define postfix-expression
-  (disjoin
-   primary-expression
-   (syntax-parser
-     [(e (~datum ++)) (define ex (postfix-expression #'e)) (and ex #`(~a #,ex '++))]
-     [(e (~datum --)) (define ex (postfix-expression #'e)) (and ex #`(~a #,ex '--))]
-     [_ #f])))
+(define (struct-declaration stx)
+  (define-values (qs stx*) (type-qualifier stx))
+  (define-values (t stx**) (type-specifier stx*))
+  (define drs (and t (struct-declarator-list stx**)))
+  (if drs
+      (values #`(~a (string-join (list #,@qs #,@t #,@drs)) ";\n")
+              stx**)
+      (values #f #f)))
+
+(define (struct-declarator-list stx)
+  (define-values (d stx*) (struct-declarator stx))
+  (and (syntax? stx*) (null? (syntax-e stx*)) (list d)))
+
+(define struct-declarator
+  (syntax-parser
+    [(head:id . tail)
+     (define-values (as tail*) (array-specifier #'tail))
+     (values #`(~a 'head #,@as) tail*)]
+    [_ (values #f #f)]))
+
+(define (type-specifier-nonarray stx)
+  (define-values (t stx*)
+    (syntax-parse stx
+      [((~datum void)    . tail) (values #'"void"    #'tail)]
+      [((~datum float)   . tail) (values #'"float"   #'tail)]
+      [((~datum double)  . tail) (values #'"double"  #'tail)]
+      [((~datum int)     . tail) (values #'"int"     #'tail)]
+      [((~datum uint)    . tail) (values #'"uint"    #'tail)]
+      [((~datum bool)    . tail) (values #'"bool"    #'tail)]
+      [((~datum vec2)    . tail) (values #'"vec2"    #'tail)]
+      [((~datum vec3)    . tail) (values #'"vec3"    #'tail)]
+      [((~datum vec4)    . tail) (values #'"vec4"    #'tail)]
+      [((~datum dvec2)   . tail) (values #'"dvec2"   #'tail)]
+      [((~datum dvec3)   . tail) (values #'"dvec3"   #'tail)]
+      [((~datum dvec4)   . tail) (values #'"dvec4"   #'tail)]
+      [((~datum bvec2)   . tail) (values #'"bvec2"   #'tail)]
+      [((~datum bvec3)   . tail) (values #'"bvec3"   #'tail)]
+      [((~datum bvec4)   . tail) (values #'"bvec4"   #'tail)]
+      [((~datum ivec2)   . tail) (values #'"ivec2"   #'tail)]
+      [((~datum ivec3)   . tail) (values #'"ivec3"   #'tail)]
+      [((~datum ivec4)   . tail) (values #'"ivec4"   #'tail)]
+      [((~datum uvec2)   . tail) (values #'"uvec2"   #'tail)]
+      [((~datum uvec3)   . tail) (values #'"uvec3"   #'tail)]
+      [((~datum uvec4)   . tail) (values #'"uvec4"   #'tail)]
+      [((~datum mat2)    . tail) (values #'"mat2"    #'tail)]
+      [((~datum mat3)    . tail) (values #'"mat3"    #'tail)]
+      [((~datum mat4)    . tail) (values #'"mat4"    #'tail)]
+      [((~datum mat2x2)  . tail) (values #'"mat2x2"  #'tail)]
+      [((~datum mat2x3)  . tail) (values #'"mat2x3"  #'tail)]
+      [((~datum mat2x4)  . tail) (values #'"mat2x4"  #'tail)]
+      [((~datum mat3x2)  . tail) (values #'"mat3x2"  #'tail)]
+      [((~datum mat3x3)  . tail) (values #'"mat3x3"  #'tail)]
+      [((~datum mat3x4)  . tail) (values #'"mat3x4"  #'tail)]
+      [((~datum mat4x2)  . tail) (values #'"mat4x2"  #'tail)]
+      [((~datum mat4x3)  . tail) (values #'"mat4x3"  #'tail)]
+      [((~datum mat4x4)  . tail) (values #'"mat4x4"  #'tail)]
+      [((~datum dmat2)   . tail) (values #'"dmat2"   #'tail)]
+      [((~datum dmat3)   . tail) (values #'"dmat3"   #'tail)]
+      [((~datum dmat4)   . tail) (values #'"dmat4"   #'tail)]
+      [((~datum dmat2x2) . tail) (values #'"dmat2x2" #'tail)]
+      [((~datum dmat2x3) . tail) (values #'"dmat2x3" #'tail)]
+      [((~datum dmat2x4) . tail) (values #'"dmat2x4" #'tail)]
+      [((~datum dmat3x2) . tail) (values #'"dmat3x2" #'tail)]
+      [((~datum dmat3x3) . tail) (values #'"dmat3x3" #'tail)]
+      [((~datum dmat3x4) . tail) (values #'"dmat3x4" #'tail)]
+      [((~datum dmat4x2) . tail) (values #'"dmat4x2" #'tail)]
+      [((~datum dmat4x3) . tail) (values #'"dmat4x3" #'tail)]
+      [((~datum dmat4x4) . tail) (values #'"dmat4x4" #'tail)]
+      [((~datum atomic_uint) . tail) (values #'"atomic_uint" #'tail)]
+      [((~datum sampler1d)              . tail) (values #'"sampler1d"              #'tail)]
+      [((~datum sampler2d200)           . tail) (values #'"sampler2d200"           #'tail)]
+      [((~datum sampler3d)              . tail) (values #'"sampler3d"              #'tail)]
+      [((~datum samplercube)            . tail) (values #'"samplercube"            #'tail)]
+      [((~datum sampler1dshadow)        . tail) (values #'"sampler1dshadow"        #'tail)]
+      [((~datum sampler2dshadow)        . tail) (values #'"sampler2dshadow"        #'tail)]
+      [((~datum samplercubeshadow)      . tail) (values #'"samplercubeshadow"      #'tail)]
+      [((~datum sampler1darray)         . tail) (values #'"sampler1darray"         #'tail)]
+      [((~datum sampler2darray)         . tail) (values #'"sampler2darray"         #'tail)]
+      [((~datum sampler1darrayshadow)   . tail) (values #'"sampler1darrayshadow"   #'tail)]
+      [((~datum sampler2darrayshadow)   . tail) (values #'"sampler2darrayshadow"   #'tail)]
+      [((~datum samplercubearray)       . tail) (values #'"samplercubearray"       #'tail)]
+      [((~datum samplercubearrayshadow) . tail) (values #'"samplercubearrayshadow" #'tail)]
+      [((~datum isampler1d)        . tail) (values #'"isampler1d"        #'tail)]
+      [((~datum isampler2d)        . tail) (values #'"isampler2d"        #'tail)]
+      [((~datum isampler3d)        . tail) (values #'"isampler3d"        #'tail)]
+      [((~datum isamplercube)      . tail) (values #'"isamplercube"      #'tail)]
+      [((~datum isampler1darray)   . tail) (values #'"isampler1darray"   #'tail)]
+      [((~datum isampler2darray)   . tail) (values #'"isampler2darray"   #'tail)]
+      [((~datum isamplercubearray) . tail) (values #'"isamplercubearray" #'tail)]
+      [((~datum usampler1d)        . tail) (values #'"usampler1d"        #'tail)]
+      [((~datum usampler2d)        . tail) (values #'"usampler2d"        #'tail)]
+      [((~datum usampler3d)        . tail) (values #'"usampler3d"        #'tail)]
+      [((~datum usamplercube)      . tail) (values #'"usamplercube"      #'tail)]
+      [((~datum usampler1darray)   . tail) (values #'"usampler1darray"   #'tail)]
+      [((~datum usampler2darray)   . tail) (values #'"usampler2darray"   #'tail)]
+      [((~datum usamplercubearray) . tail) (values #'"usamplercubearray" #'tail)]
+      [((~datum sampler2drectshadow) . tail) (values #'"sampler2drectshadow" #'tail)]
+      [((~datum sampler2drect)       . tail) (values #'"sampler2drect"       #'tail)]
+      [((~datum isampler2drect)      . tail) (values #'"isampler2drect"      #'tail)]
+      [((~datum usampler2drect)      . tail) (values #'"usampler2drect"      #'tail)]
+      [((~datum samplerbuffer)  . tail) (values #'"samplerbuffer"  #'tail)]
+      [((~datum isamplerbuffer) . tail) (values #'"isamplerbuffer" #'tail)]
+      [((~datum usamplerbuffer) . tail) (values #'"usamplerbuffer" #'tail)]
+      [((~datum sampler2dms)  . tail) (values #'"sampler2dms"  #'tail)]
+      [((~datum isampler2dms) . tail) (values #'"isampler2dms" #'tail)]
+      [((~datum usampler2dms) . tail) (values #'"usampler2dms" #'tail)]
+      [((~datum sampler2dmsarray)     . tail) (values #'"sampler2dmsarray"     #'tail)]
+      [((~datum isampler2dmsarray201) . tail) (values #'"isampler2dmsarray201" #'tail)]
+      [((~datum usampler2dmsarray)    . tail) (values #'"usampler2dmsarray"    #'tail)]
+      [((~datum image1d)  . tail) (values #'"image1d"  #'tail)]
+      [((~datum iimage1d) . tail) (values #'"iimage1d" #'tail)]
+      [((~datum uimage1d) . tail) (values #'"uimage1d" #'tail)]
+      [((~datum image2d)  . tail) (values #'"image2d"  #'tail)]
+      [((~datum iimage2d) . tail) (values #'"iimage2d" #'tail)]
+      [((~datum uimage2d) . tail) (values #'"uimage2d" #'tail)]
+      [((~datum image3d)  . tail) (values #'"image3d"  #'tail)]
+      [((~datum iimage3d) . tail) (values #'"iimage3d" #'tail)]
+      [((~datum uimage3d) . tail) (values #'"uimage3d" #'tail)]
+      [((~datum image2drect)  . tail) (values #'"image2drect"  #'tail)]
+      [((~datum iimage2drect) . tail) (values #'"iimage2drect" #'tail)]
+      [((~datum uimage2drect) . tail) (values #'"uimage2drect" #'tail)]
+      [((~datum imagecube)  . tail) (values #'"imagecube"  #'tail)]
+      [((~datum iimagecube) . tail) (values #'"iimagecube" #'tail)]
+      [((~datum uimagecube) . tail) (values #'"uimagecube" #'tail)]
+      [((~datum imagebuffer)  . tail) (values #'"imagebuffer"  #'tail)]
+      [((~datum iimagebuffer) . tail) (values #'"iimagebuffer" #'tail)]
+      [((~datum uimagebuffer) . tail) (values #'"uimagebuffer" #'tail)]
+      [((~datum image1darray)  . tail) (values #'"image1darray"  #'tail)]
+      [((~datum iimage1darray) . tail) (values #'"iimage1darray" #'tail)]
+      [((~datum uimage1darray) . tail) (values #'"uimage1darray" #'tail)]
+      [((~datum image2darray)  . tail) (values #'"image2darray"  #'tail)]
+      [((~datum iimage2darray) . tail) (values #'"iimage2darray" #'tail)]
+      [((~datum uimage2darray) . tail) (values #'"uimage2darray" #'tail)]
+      [((~datum imagecubearray)  . tail) (values #'"imagecubearray"  #'tail)]
+      [((~datum iimagecubearray) . tail) (values #'"iimagecubearray" #'tail)]
+      [((~datum uimagecubearray) . tail) (values #'"uimagecubearray" #'tail)]
+      [((~datum image2dms)  . tail) (values #'"image2dms"  #'tail)]
+      [((~datum iimage2dms) . tail) (values #'"iimage2dms" #'tail)]
+      [((~datum uimage2dms) . tail) (values #'"uimage2dms" #'tail)]
+      [((~datum image2dmsarray)  . tail) (values #'"image2dmsarray"  #'tail)]
+      [((~datum iimage2dmsarray) . tail) (values #'"iimage2dmsarray" #'tail)]
+      [((~datum uimage2dmsarray) . tail) (values #'"uimage2dmsarray" #'tail)]
+      [_ (values #f #f)]))
+  (if t (values t stx*) (struct-specifier stx)))
 
 (define-syntax-class reserved-word
-  (pattern (~or (~datum and)
+  (pattern (~or (~datum ++)
+                (~datum --)
+                (~datum +)
+                (~datum -)
+                (~datum !)
+                (~datum ~)
+                (~datum *)
+                (~datum /)
+                (~datum %)
+                (~datum <<)
+                (~datum >>)
+                (~datum <)
+                (~datum >)
+                (~datum <=)
+                (~datum >=)
+                (~datum ==)
+                (~datum !=)
+                (~datum bitwise-and)
+                (~datum bitwise-xor)
+                (~datum bitwise-ior)
+                (~datum and)
+                (~datum xor)
                 (~datum or)
-                (~datum xor))))
+                (~datum if)
+                (~datum *=)
+                (~datum /=)
+                (~datum %=)
+                (~datum +=)
+                (~datum -=)
+                (~datum &=)
+                (~datum ^=)
+                (~datum or=)
+                (~datum set!)
+                (~datum define)
+                (~datum struct)
+                (~datum const)
+                (~datum in)
+                (~datum out)
+                (~datum inout)
+                (~datum centroid)
+                (~datum patch)
+                (~datum sample)
+                (~datum uniform)
+                (~datum buffer)
+                (~datum shared)
+                (~datum coherent)
+                (~datum volatile)
+                (~datum restrict)
+                (~datum readonly)
+                (~datum writeonly)
+                (~datum subroutine)
+                (~datum layout)
+                (~datum highp)
+                (~datum mediump)
+                (~datum lowp)
+                (~datum smooth)
+                (~datum flat)
+                (~datum noperspective)
+                (~datum invariant)
+                (~datum precise))))
 
 (define function-call-generic
   (syntax-parser
-    [((~and f:id (~not :reserved-word)) arg ...)
+    [((~and f (~not :reserved-word)) ~! arg ...)
      (define fun (function-identifier #'f))
-     (define args (and fun (map assignment-expression (attribute arg))))
+     (define args (and fun (map expression (attribute arg))))
      (and args
           (andmap values args)
           #`(~a #,fun "(" (string-join (list #,@args) ", ") ")"))]
@@ -265,19 +352,7 @@
 
 (define (function-identifier stx)
   (define-values (t _) (type-specifier-nonarray #`(#,stx)))
-  (or t (postfix-expression stx)))
-
-(define unary-expression
-  (disjoin
-   postfix-expression
-   (syntax-parser
-     [((~datum ++) e) (define ex (unary-expression #'e)) (and ex #`(~a '++ #,ex))]
-     [((~datum --) e) (define ex (unary-expression #'e)) (and ex #`(~a '-- #,ex))]
-     [(o e)
-      (define op (unary-operator #'o))
-      (define ex (and op (unary-expression #'e)))
-      (and ex #`(~a #,op #,ex))]
-     [_ #f])))
+  (or t (expression stx)))
 
 (define unary-operator
   (syntax-parser
@@ -286,146 +361,6 @@
     [(~datum !) #'"!"]
     [(~datum ~) #'"~"]
     [_ #f]))
-
-(define multiplicative-expression
-  (disjoin
-   unary-expression
-   (syntax-parser
-     [(e [i:exact-integer])
-      (define ex (postfix-expression #'e))
-      (and ex #`(~a #,ex "[" i "]"))]
-     [_ #f])
-   (syntax-parser
-     [((~datum *) e ...)
-      (define es (map unary-expression (attribute e)))
-      (and (andmap values es) #`(string-join (list #,@es) " * "))]
-     [((~datum /) e ...)
-      (define es (map unary-expression (attribute e)))
-      (and (andmap values es) #`(string-join (list #,@es) " / "))]
-     [((~datum %) e ...)
-      (define es (map unary-expression (attribute e)))
-      (and (andmap values es) #`(string-join (list #,@es) " % "))]
-     [_ #f])
-   function-call))
-
-(define additive-expression
-  (disjoin
-   multiplicative-expression
-   (syntax-parser
-     [((~datum +) e ...)
-      (define es (map multiplicative-expression (attribute e)))
-      (and (andmap values es) #`(string-join (list #,@es) " + "))]
-     [((~datum -) e ...)
-      (define es (map multiplicative-expression (attribute e)))
-      (and (andmap values es) #`(string-join (list #,@es) " - "))]
-     [_ #f])))
-
-(define shift-expression
-  (disjoin
-   additive-expression
-   (syntax-parser
-     [((~datum <<) e ...)
-      (define es (map additive-expression (attribute e)))
-      (and (andmap values es) #`(string-join (list #,@es) " << "))]
-     [((~datum >>) e ...)
-      (define es (map additive-expression (attribute e)))
-      (and (andmap values es) #`(string-join (list #,@es) " >> "))]
-     [_ #f])))
-
-(define relational-expression
-  (disjoin
-   shift-expression
-   (syntax-parser
-     [((~datum <) e ...)
-      (define es (map shift-expression (attribute e)))
-      (and (andmap values es) #`(string-join (list #,@es) " < "))]
-     [((~datum >) e ...)
-      (define es (map shift-expression (attribute e)))
-      (and (andmap values es) #`(string-join (list #,@es) " > "))]
-     [((~datum <=) e ...)
-      (define es (map shift-expression (attribute e)))
-      (and (andmap values es) #`(string-join (list #,@es) " <= "))]
-     [((~datum >=) e ...)
-      (define es (map shift-expression (attribute e)))
-      (and (andmap values es) #`(string-join (list #,@es) " >= "))]
-     [_ #f])))
-
-(define equality-expression
-  (disjoin
-   relational-expression
-   (syntax-parser
-     [((~datum ==) e ...)
-      (define es (map relational-expression (attribute e)))
-      (and (andmap values es) #`(string-join (list #,@es) " == "))]
-     [((~datum !=) e ...)
-      (define es (map relational-expression (attribute e)))
-      (and (andmap values es) #`(string-join (list #,@es) " != "))]
-     [_ #f])))
-
-(define and-expression
-  (disjoin
-   equality-expression
-   (syntax-parser
-     [((~datum bitwise-and) e ...)
-      (define es (map equality-expression (attribute e)))
-      (and (andmap values es) #`(string-join (list #,@es) " & "))]
-     [_ #f])))
-
-(define exclusive-or-expression
-  (disjoin
-   and-expression
-   (syntax-parser
-     [((~datum bitwise-xor) e ...)
-      (define es (map and-expression (attribute e)))
-      (and (andmap values es) #`(string-join (list #,@es) " ^ "))]
-     [_ #f])))
-
-(define inclusive-or-expression
-  (disjoin
-   exclusive-or-expression
-   (syntax-parser
-     [((~datum bitwise-ior) e ...)
-      (define es (map exclusive-or-expression (attribute e)))
-      (and (andmap values es) #`(string-join (list #,@es) " | "))]
-     [_ #f])))
-
-(define logical-and-expression
-  (disjoin
-   inclusive-or-expression
-   (syntax-parser
-     [((~datum and) e ...)
-      (define es (map inclusive-or-expression (attribute e)))
-      (and (andmap values es) #`(string-join (list #,@es) " && "))]
-     [_ #f])))
-
-(define logical-xor-expression
-  (disjoin
-   logical-and-expression
-   (syntax-parser
-     [((~datum xor) e ...)
-      (define es (map logical-and-expression (attribute e)))
-      (and (andmap values es) #`(string-join (list #,@es) " ^^ "))]
-     [_ #f])))
-
-(define logical-or-expression
-  (disjoin
-   logical-xor-expression
-   (syntax-parser
-     [((~datum or) e ...)
-      (define es (map logical-xor-expression (attribute e)))
-      (and (andmap values es) #`(string-join (list #,@es) " || "))]
-     [_ #f])))
-
-(define conditional-expression
-  (disjoin
-   (syntax-parser
-     [((~datum if) t e1 e2)
-      (define test (logical-or-expression #'t))
-      (define ex1 (and test (expression #'e1)))
-      (define ex2 (and ex1 (assignment-expression #'e2)))
-      (and ex2 #`(string-join #,test "?" #,ex1 ":" #,ex2))]
-     [_ #f])
-   logical-or-expression))
 
 (define assignment-operator
   (syntax-parser
@@ -439,37 +374,130 @@
     [(~datum or=) #'"|="]
     [_ #f]))
 
-(define assignment-expression
+(define sub-expression
+  (syntax-parser
+    [(~or :id :number) #`(~a '#,this-syntax)]
+    [#t #'"true"]
+    [#f #'"false"]
+    [_ (define e (expression this-syntax))
+       (and e #`(~a "(" #,e ")"))]))
+
+(define expression
   (disjoin
    (syntax-parser
-     [((~datum set!) l r)
-      (define lhs (unary-expression #'l))
-      (define rhs (and lhs (assignment-expression #'r)))
-      (and rhs #`(string-join (list #,lhs "=" #,rhs)))]
+     [(~or :id :number) #`(~a '#,this-syntax)]
+     [#t #'"true"]
+     [#f #'"false"]
+     [(e [i])
+      (define ex (sub-expression #'e))
+      (define idx (and ex (expression #'i)))
+      (and idx #`(~a #,ex "[" #,idx "]"))]
+     [_ #f])
+   function-call
+   (syntax-parser
+     [(e (~datum ++)) (define ex (sub-expression #'e)) (and ex #`(~a #,ex '++))]
+     [(e (~datum --)) (define ex (sub-expression #'e)) (and ex #`(~a #,ex '--))]
+     [((~datum ++) ~! e) (define ex (sub-expression #'e)) (and ex #`(~a '++ #,ex))]
+     [((~datum --) ~! e) (define ex (sub-expression #'e)) (and ex #`(~a '-- #,ex))]
+     [(o e)
+      (define op (unary-operator #'o))
+      (define ex (and op (sub-expression #'e)))
+      (and ex #`(~a #,op #,ex))]
+     [((~datum *) ~! e ...)
+      (define es (map sub-expression (attribute e)))
+      (and (andmap values es) #`(string-join (list #,@es) " * "))]
+     [((~datum /) ~! e ...)
+      (define es (map sub-expression (attribute e)))
+      (and (andmap values es) #`(string-join (list #,@es) " / "))]
+     [((~datum %) ~! e ...)
+      (define es (map sub-expression (attribute e)))
+      (and (andmap values es) #`(string-join (list #,@es) " % "))]
+     [((~datum +) ~! e ...)
+      (define es (map sub-expression (attribute e)))
+      (and (andmap values es) #`(string-join (list #,@es) " + "))]
+     [((~datum -) ~! e ...)
+      (define es (map sub-expression (attribute e)))
+      (and (andmap values es) #`(string-join (list #,@es) " - "))]
+     [((~datum <<) ~! e ...)
+      (define es (map sub-expression (attribute e)))
+      (and (andmap values es) #`(string-join (list #,@es) " << "))]
+     [((~datum >>) ~! e ...)
+      (define es (map sub-expression (attribute e)))
+      (and (andmap values es) #`(string-join (list #,@es) " >> "))]
+     [((~datum <) ~! e ...)
+      (define es (map sub-expression (attribute e)))
+      (and (andmap values es) #`(string-join (list #,@es) " < "))]
+     [((~datum >) ~! e ...)
+      (define es (map sub-expression (attribute e)))
+      (and (andmap values es) #`(string-join (list #,@es) " > "))]
+     [((~datum <=) ~! e ...)
+      (define es (map sub-expression (attribute e)))
+      (and (andmap values es) #`(string-join (list #,@es) " <= "))]
+     [((~datum >=) ~! e ...)
+      (define es (map sub-expression (attribute e)))
+      (and (andmap values es) #`(string-join (list #,@es) " >= "))]
+     [((~datum ==) ~! e ...)
+      (define es (map sub-expression (attribute e)))
+      (and (andmap values es) #`(string-join (list #,@es) " == "))]
+     [((~datum !=) ~! e ...)
+      (define es (map sub-expression (attribute e)))
+      (and (andmap values es) #`(string-join (list #,@es) " != "))]     
+     [((~datum bitwise-and) ~! e ...)
+      (define es (map sub-expression (attribute e)))
+      (and (andmap values es) #`(string-join (list #,@es) " & "))]
+     [((~datum bitwise-xor) ~! e ...)
+      (define es (map sub-expression (attribute e)))
+      (and (andmap values es) #`(string-join (list #,@es) " ^ "))]
+     [((~datum bitwise-ior) ~! e ...)
+      (define es (map sub-expression (attribute e)))
+      (and (andmap values es) #`(string-join (list #,@es) " | "))]
+     [((~datum and) ~! e ...)
+      (define es (map sub-expression (attribute e)))
+      (and (andmap values es) #`(string-join (list #,@es) " && "))]
+     [((~datum xor) ~! e ...)
+      (define es (map sub-expression (attribute e)))
+      (and (andmap values es) #`(string-join (list #,@es) " ^^ "))]
+     [((~datum or) ~! e ...)
+      (define es (map sub-expression (attribute e)))
+      (and (andmap values es) #`(string-join (list #,@es) " || "))]
+     [((~datum if) ~! t e1 e2)
+      (define test (sub-expression #'t))
+      (define ex1 (and test (sub-expression #'e1)))
+      (define ex2 (and ex1  (sub-expression #'e2)))
+      (and ex2 #`(string-join #,test "?" #,ex1 ":" #,ex2))]
+     [((~datum set!) ~! l r)
+      (define-values (lhs tail) (values (list (sub-expression #'l)) #'()))
+      (unless (car lhs) (set!-values (lhs tail) (single-declaration #'l)))
+      (define rhs (and lhs (null? (syntax-e tail)) (expression #'r)))
+      (and rhs #`(string-join (list #,@lhs "=" #,rhs)))]
      [(o l r ...+)
       (define op (assignment-operator #'o))
-      (define lhs (and op  (unary-expression #'l)))
-      (define rhs (and lhs (map assignment-expression (attribute r))))
+      (define lhs (and op  (sub-expression #'l)))
+      (define rhs (and lhs (map sub-expression (attribute r))))
       (and rhs
            (andmap values rhs)
            #`(~a "("
                  (string-join (list #,@(cons lhs rhs)) (~a " " #,op " "))
-                 ")"))]
-     [_ #f])
-   conditional-expression))
-
-(define expression assignment-expression)
+                 ")"))])))
 
 (define (expression-statement stx)
   (define e (expression stx))
   (and e #`(~a #,e ";")))
 
 (define simple-statement expression-statement)
-(define statement simple-statement)
+
+;; (define compound-statement
+;;   (syntax-parser
+;;     [((~datum begin) )]))
+
+(define statement
+  (disjoin
+   ;; compound-statement
+   simple-statement))
 
 (define function-definition
   (syntax-parser
-    [((~datum define) (f:id [tx:id ...+ x:id] ...) (~datum :) (~or tf:id (tfs ...+))
+    [((~datum define) ~! (f:id [tx:id ...+ x:id] ...) (~datum :) (~or tf:id (tfs ...+))
                       b ...)
      (define body (map statement (attribute b)))
      (and
@@ -505,7 +533,7 @@
 
 (define version-directive
   (syntax-parser
-    [((~datum #%version) val:version-num (~optional profile:profile-name))
+    [((~datum #%version) ~! val:version-num (~optional profile:profile-name))
      #'(~a "#version " val (~? (~@ " " 'profile)))]
     [_ #f]))
 
